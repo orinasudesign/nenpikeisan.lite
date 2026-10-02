@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>おうちの燃費チェック（かんたん版）</title>
+<meta name="description" content="木造住宅の断熱性能・広さ・階数・南の窓・庇を選ぶだけで、冷暖房のエネルギーと光熱費が「今の基準の家」よりどれだけ減るかを確かめられます。">
+<style>
+:root {
+  --bg: #f3f5f7; --panel: #fff; --ink: #1d2733; --muted: #5d6b7a; --line: #d9e0e7;
+  --accent: #1f6f8b; --accent-soft: #e6f1f5; --heat: #d9534f; --cool: #2b7fc2; --good: #2e8b57; --bad: #c0392b; --base: #9aa5b1;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Segoe UI", "Yu Gothic UI", "Hiragino Sans", "Meiryo", system-ui, sans-serif; background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1.55; }
+header { background: linear-gradient(135deg, #1f6f8b, #2a8fa8); color: #fff; padding: 18px 20px; }
+header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+header p { margin: 4px 0 0; font-size: 13px; opacity: .92; }
+main { max-width: 1100px; margin: 0 auto; padding: 14px 12px 40px; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.layout > * { min-width: 0; }
+@media (min-width: 900px) { .layout { grid-template-columns: 420px minmax(0, 1fr); align-items: start; } .results { position: sticky; top: 8px; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+.panel h2 { margin: 0 0 8px; font-size: 16px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+.step { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; flex: none; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 2px 0 8px; }
+label.f { display: flex; flex-direction: column; font-size: 12.5px; color: var(--muted); }
+label.f select, label.f input { margin-top: 3px; padding: 8px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 15px; color: var(--ink); background: #fff; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 14px; }
+.cards { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.card { display: flex; gap: 10px; align-items: flex-start; border: 2px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; background: #fff; }
+.card.sel { border-color: var(--accent); background: var(--accent-soft); }
+.card input { margin-top: 4px; }
+.card b { display: block; font-size: 14px; }
+.card small { color: var(--muted); font-size: 12px; line-height: 1.35; display: block; }
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg button { flex: 1 1 auto; border: 2px solid var(--line); background: #fff; border-radius: 8px; padding: 9px 10px; font-size: 14px; cursor: pointer; color: var(--ink); min-width: 60px; }
+.seg button.sel { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.btn { background: #fff; color: var(--accent); border: 1px solid var(--accent); padding: 9px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fff; }
+.kpi .l { font-size: 12.5px; color: var(--muted); }
+.kpi .v { font-size: 26px; font-weight: 800; line-height: 1.15; }
+.kpi .v small { font-size: 13px; font-weight: 600; margin-left: 2px; }
+.kpi .s { font-size: 12px; color: var(--muted); }
+.kpi.heat { border-top: 4px solid var(--heat); } .kpi.cool { border-top: 4px solid var(--cool); } .kpi.money { border-top: 4px solid var(--good); } .kpi.co2 { border-top: 4px solid #6c757d; }
+.kpi .v.good { color: var(--good); } .kpi .v.bad { color: var(--bad); } .kpi .v.flat { color: var(--muted); }
+.callout { border-radius: 10px; padding: 12px 14px; margin: 10px 0; background: #eef8f1; border: 1px solid #cfe9d8; font-size: 15px; }
+.callout.worse { background: #fdf0ee; border-color: #f2cfcb; } .callout.same { background: #f2f4f6; border-color: var(--line); }
+.callout b { font-size: 20px; } .callout .sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.rank { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+.rank .badge { font-size: 34px; font-weight: 900; width: 64px; height: 64px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; flex: none; }
+.rank p { margin: 0; font-size: 13px; color: var(--muted); } .rank p b { color: var(--ink); font-size: 15px; }
+.risk { border-radius: 10px; padding: 10px 14px; margin-top: 10px; font-size: 14px; }
+.risk.low { background: #e3f4ea; border: 1px solid #bfe3cc; } .risk.mid { background: #fdf0d5; border: 1px solid #f3d9a0; } .risk.high { background: #fbe0da; border: 1px solid #f2b9ae; }
+.risk b { font-size: 16px; }
+svg.chart { width: 100%; height: auto; display: block; }
+.note { font-size: 12px; color: var(--muted); }
+.footer { font-size: 12px; color: var(--muted); margin-top: 6px; } .footer ul { padding-left: 18px; margin: 4px 0; }
+details summary { cursor: pointer; color: var(--accent); font-size: 13px; }
+details { margin-top: 8px; }
+.intro { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 1100px; margin: 0 auto 4px; padding: 14px 12px 0; font-size: 13.5px; }
+.intro div { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: flex; align-items: center; gap: 8px; }
+.intro b { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; flex: none; }
+@media (max-width: 640px) { .intro { grid-template-columns: 1fr; gap: 6px; } }
+.disclaimer { background: #fff8e6; border: 1px solid #f0d9a0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; line-height: 1.6; color: #5a4a1e; }
+.disclaimer b { color: #8a5a00; margin-right: 4px; }
+.card small.plain { color: var(--accent); font-weight: 600; margin-bottom: 2px; }
+@media (max-width: 480px) { header h1 span { display: block; } }
+/* ---- 結果シート（中学生向けデザイン） ---- */
+.sheet { border: 2px solid var(--accent); }
+.sheet-head { display: flex; align-items: center; gap: 10px; }
+.sheet-tag { background: var(--accent); color: #fff; border-radius: 999px; padding: 2px 12px; font-size: 13px; font-weight: 700; }
+.sheet h2 { font-size: 20px; }
+.verdict { display: flex; gap: 14px; align-items: center; border-radius: 14px; padding: 14px 16px; margin: 6px 0 12px; }
+.verdict.good { background: #eef8f1; border: 2px solid #9fd6b2; } .verdict.bad { background: #fdf0ee; border: 2px solid #f2b9ae; } .verdict.same { background: #f2f4f6; border: 2px solid var(--line); }
+.verdict .face { font-size: 48px; line-height: 1; flex: none; }
+.verdict .head { font-size: 20px; font-weight: 700; line-height: 1.35; } .verdict .head b { font-size: 28px; color: var(--accent); }
+.verdict.bad .head b { color: var(--bad); }
+.verdict .sub { font-size: 14px; color: var(--muted); margin-top: 4px; } .verdict .sub b { color: var(--ink); }
+.vs { background: #fbfcfd; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px 10px; }
+.eq-title { font-size: 15px; margin: 14px 0 8px; color: var(--accent); }
+.eq { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 640px) { .eq { grid-template-columns: 1fr; } }
+.eq-tile { border: 1px solid var(--line); border-radius: 12px; padding: 12px; text-align: center; background: #fff; }
+.eq-tile .ic { font-size: 34px; line-height: 1; }
+.eq-tile .big { font-size: 28px; font-weight: 800; color: var(--accent); margin: 4px 0 2px; } .eq-tile .big small { font-size: 13px; margin-left: 2px; }
+.eq-tile .t { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.rank-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.rank-row .badge { font-size: 34px; font-weight: 900; width: 64px; height: 64px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; flex: none; }
+.rank-scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.rk { position: relative; background: var(--c); color: #fff; border-radius: 8px; padding: 8px 4px 6px; text-align: center; opacity: .45; min-height: 58px; }
+.rk.me, .rk.you { opacity: 1; } .rk.me { outline: 3px solid var(--ink); outline-offset: 2px; }
+.rk .rl { font-size: 22px; font-weight: 900; line-height: 1.1; } .rk .rw { font-size: 11.5px; }
+.rk .pin { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; font-size: 11.5px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.rk .pin.you { color: var(--muted); font-weight: 600; }
+.rank-scale { margin-bottom: 26px; }
+.thermos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (max-width: 480px) { .thermos { grid-template-columns: 1fr; } }
+.th { text-align: center; border: 1px solid var(--line); border-radius: 12px; padding: 8px; background: #fff; }
+.th-m { font-weight: 800; font-size: 16px; } .th-v { font-size: 26px; font-weight: 800; margin-top: 2px; }
+svg.thermo { width: 100%; max-width: 230px; height: auto; display: block; margin: auto; }
+ruby rt { font-size: 9px; color: var(--muted); }
+
+@media print { header, .inputs, .noprint { display: none !important; } .results { position: static; } body { background: #fff; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>おうちの燃費チェック <span style="font-size:14px;font-weight:400;opacity:.9">― 断熱と窓の工夫で、光熱費はどれだけ変わる？</span></h1>
+  <p>5つの質問に答えるだけで、冷暖房にかかるエネルギーと電気代の目安が「比べたい家」との差で分かります。入力はすべてこの画面の中だけで計算され、どこにも送信されません。</p>
+</header>
+<main>
+<div class="intro noprint">
+  <div><b>1</b>家のことを5つ選ぶ</div><div><b>2</b>右（スマホでは下）にすぐ結果</div><div><b>3</b>条件を変えて、差を見比べる</div>
+</div>
+<div class="layout">
+<section class="inputs">
+
+  <div class="panel">
+    <h2><span class="step">1</span>お住まいの都道府県</h2>
+    <label class="f">都道府県を選んでください<select id="pref"></select></label>
+    <p class="hint" id="regionNote" style="margin:6px 0 0"></p>
+    <details>
+      <summary>寒い地域・暖かい地域を細かく選ぶ</summary>
+      <label class="f" style="margin-top:6px">省エネ基準の地域区分（1が最も寒く、8が沖縄）<select id="region"></select></label>
+    </details>
+  </div>
+
+  <div class="panel">
+    <h2><span class="step">2</span>家の断熱のレベル</h2>
+    <p class="hint">いちばん近いものを選んでください。これから建てる家なら「断熱等級」、今住んでいる家なら建てた年代が目安です。</p>
+    <div class="cards" id="grades"></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="step">3</span>家の広さと階数</h2>
+    <p class="hint">広さ（各階の床面積の合計。30坪 ≒ 100㎡）</p>
+    <div class="seg" id="areaPresets"></div>
+    <p class="hint" style="margin-top:10px">階数</p>
+    <div class="seg" id="stories"></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="step">4</span>南側の窓と、日ざしの工夫</h2>
+    <div class="grid">
+      <label class="f">南側の窓の多さ
+        <select id="south">
+          <option value="few">少なめ（大きな窓1つ＋ふつうの窓1つ）</option>
+          <option value="std" selected>ふつう（大きな窓2つ＋ふつうの窓2つ）</option>
+          <option value="many">多め（大きな窓3つ＋ふつうの窓2つ）</option>
+        </select>
+      </label>
+      <label class="f">屋根の出・ひさし（窓の上の日よけ）
+        <select id="eave">
+          <option value="0">ほとんどない</option>
+          <option value="0.6" selected>ふつう（約60cm）</option>
+          <option value="0.9">深い（約90cm）</option>
+        </select>
+      </label>
+      <label class="f">夏の日よけ（すだれ・外付けスクリーンなど）
+        <select id="shade">
+          <option value="0" selected>使わない</option>
+          <option value="1">南・東・西の窓に付ける</option>
+        </select>
+      </label>
+      <label class="f">冷暖房の使い方
+        <select id="op">
+          <option value="partial" selected>いる部屋だけ、いる時間だけ（一般的）</option>
+          <option value="full">家全体を24時間つけたまま</option>
+        </select>
+      </label>
+    </div>
+    <p class="hint" style="margin-top:8px">東・西・北側の窓は一般的な数（ふつうの窓と小窓）で決めてあります。「大きな窓」は掃き出し窓（幅1.65m×高さ2m）、「ふつうの窓」は腰窓（幅1.65m×高さ1.1m）です。</p>
+  </div>
+
+  <div class="panel">
+    <h2><span class="step">5</span>どんな家と比べる？</h2>
+    <label class="f">比べる相手（同じ広さ・同じ窓で、断熱だけが違う家）<select id="baseline"></select></label>
+    <p class="hint" style="margin:6px 0 0">「断熱等級4」は、2025年から新築に義務づけられた最低ラインです。</p>
+  </div>
+
+  <div class="row noprint" style="margin-bottom:12px">
+    <button class="btn" id="copyLink">この条件のリンクをコピー</button>
+    <button class="btn" id="printBtn">印刷 / PDF保存</button>
+  </div>
+</section>
+
+<section class="results">
+  <div class="panel sheet">
+    <div class="sheet-head"><span class="sheet-tag">けっか</span><h2 style="margin:0">あなたの家の 結果シート</h2></div>
+    <div id="summaryLine" class="note" style="margin:6px 0 10px"></div>
+    <div id="verdict"></div>
+    <div id="vs"></div>
+    <div id="equiv"></div>
+  </div>
+
+  <div class="panel">
+    <h2>🏅 おうちの<ruby>省エネ<rt>しょうエネ</rt></ruby>成績</h2>
+    <div id="rank"></div>
+  </div>
+
+  <div class="panel">
+    <h2>🌡️ 春と秋、冷房なしで暑すぎない？</h2>
+    <p class="hint">5月と11月に、冷房も暖房も使わず窓を閉めたままにしたときの、昼間いちばん暑いときの部屋の温度です。<ruby>断熱<rt>だんねつ</rt></ruby>が良くて窓が大きい家は、日ざしで30℃をこえることがあります。</p>
+    <div id="tempCard"></div>
+  </div>
+
+  <div class="disclaimer">
+    <b>ご注意</b>　この結果は、一般的な<ruby>仕様<rt>しよう</rt></ruby>と平年の気象データを使った<b>かんたんな計算による「目安」</b>です。実際の家の性能・室温・光熱費を<ruby>保証<rt>ほしょう</rt></ruby>するものではありません。建てる場所の気候、間取り、住まい方、設備、電気料金などによって結果は変わります。実際の計画では、設計者による省エネ計算（外皮性能・一次エネルギー消費量の計算）で確認してください。
+  </div>
+  <div class="panel">
+    <details>
+      <summary>計算のしかたと前提（くわしく）</summary>
+      <div class="footer">
+        <ul>
+          <li>月別の熱収支法（ISO 13790 準拠の簡易法）による概算です。室温は暖房20℃・冷房27℃、地域代表都市の平年気象を使用。都道府県は県庁所在地の地域区分に読み替えています。</li>
+          <li>断熱等級ごとの壁・屋根・床・窓の性能は一般的な仕様の代表値です。平面は東西にやや長い長方形、階高2.8 m として外皮を自動生成します。</li>
+          <li>「いる部屋だけ、いる時間だけ」は、家全体を24時間冷暖房した場合の需要に係数（暖房0.45・冷房0.5）を掛けた概算です。</li>
+          <li>電気代はエアコン使用（暖房COP3.0・冷房COP3.5）、31円/kWh、CO2は0.434 kg/kWh で換算。「ふつうの家の電気○か月分」は1世帯の月平均使用量を350 kWh、「スギの木○本分」は1本が1年に吸収するCO2を8.8 kg（林野庁の試算）として計算。</li>
+          <li>実際の設計や省エネ基準の適合判定には、国の「エネルギー消費性能計算プログラム」等をご利用ください。</li>
+        </ul>
+        <p class="note">方位ごとの窓の数・サイズ、周辺建物、換気方式などを細かく設定できる詳細版もあります。</p>
+      </div>
+    </details>
+  </div>
+</section>
+</div>
+</main>
+
+<script>
+/* ==== ENGINE: auto-copied from passive_house_calc/index.html - do not edit here ==== */
+/* =====================================================================
+ *  データ
+ * ===================================================================== */
+const REGIONS = [
+  { id: 1, name: '1地域（旭川・帯広など）', city: '旭川', lat: 43.8, t: [-7.0,-6.1,-1.1,5.9,12.6,17.5,21.6,21.9,16.5,9.5,2.3,-4.4], gh: [5.3,8.4,12.2,15.7,17.6,17.3,16.1,14.2,12.0,8.7,5.4,4.3] },
+  { id: 2, name: '2地域（札幌・函館など）', city: '札幌', lat: 43.1, t: [-3.2,-2.7,1.1,7.3,13.0,17.0,21.1,22.3,18.6,12.1,5.2,-0.9], gh: [6.3,9.3,13.0,16.4,18.3,18.5,17.0,15.3,12.9,9.6,6.3,5.2] },
+  { id: 3, name: '3地域（盛岡・青森など）', city: '盛岡', lat: 39.7, t: [-1.6,-1.0,2.6,8.7,14.5,18.6,22.4,23.5,19.2,12.7,6.3,1.0], gh: [6.6,9.4,12.9,16.4,17.9,16.9,15.2,14.0,11.9,9.5,6.7,5.7] },
+  { id: 4, name: '4地域（仙台・長野など）', city: '仙台', lat: 38.3, t: [2.0,2.4,5.5,10.7,15.6,19.2,22.9,24.4,21.2,15.7,9.8,4.5], gh: [8.2,10.8,13.8,16.4,17.5,15.5,14.5,14.4,11.5,10.3,8.1,7.3] },
+  { id: 5, name: '5地域（宇都宮・水戸など）', city: '宇都宮', lat: 36.5, t: [2.8,3.8,7.4,12.8,17.8,21.2,24.8,25.8,22.0,16.2,10.0,5.0], gh: [9.3,11.4,13.7,15.8,16.5,14.6,15.1,15.4,12.0,10.3,9.0,8.6] },
+  { id: 6, name: '6地域（東京・大阪・福岡など）', city: '東京', lat: 35.7, t: [5.4,6.1,9.4,14.3,18.8,21.9,25.7,26.9,23.3,18.0,12.5,7.7], gh: [9.4,11.4,13.5,15.9,16.8,14.6,16.3,16.5,12.6,10.6,9.0,8.4] },
+  { id: 7, name: '7地域（鹿児島・宮崎など）', city: '鹿児島', lat: 31.6, t: [8.7,9.9,12.8,17.1,21.0,24.0,28.1,28.8,26.3,21.6,16.2,10.9], gh: [9.0,11.4,13.8,16.8,17.7,14.1,18.2,18.7,15.8,13.6,10.4,8.7] },
+  { id: 8, name: '8地域（沖縄）', city: '那覇', lat: 26.2, t: [17.3,17.5,19.1,21.5,24.2,27.2,29.1,29.0,27.9,25.5,22.5,19.0], gh: [8.4,10.1,12.4,14.9,16.4,18.5,20.3,19.0,17.0,13.6,10.0,8.2] }
+];
+
+const WIN_SPECS = [
+  { id: 'al1',  name: 'アルミサッシ＋単板ガラス', u: 6.5, eta: 0.70 },
+  { id: 'al2',  name: 'アルミサッシ＋複層ガラス', u: 4.65, eta: 0.63 },
+  { id: 'ar2g', name: 'アルミ樹脂複合＋Low-E複層（日射取得型）', u: 2.33, eta: 0.49 },
+  { id: 'ar2s', name: 'アルミ樹脂複合＋Low-E複層（日射遮蔽型）', u: 2.33, eta: 0.40 },
+  { id: 'pv2g', name: '樹脂サッシ＋Low-E複層（日射取得型）', u: 1.9, eta: 0.46 },
+  { id: 'pv2s', name: '樹脂サッシ＋Low-E複層（日射遮蔽型）', u: 1.9, eta: 0.37 },
+  { id: 'pv3g', name: '樹脂サッシ＋Low-Eトリプル（日射取得型）', u: 1.0, eta: 0.40 },
+  { id: 'pv3s', name: '樹脂サッシ＋Low-Eトリプル（日射遮蔽型）', u: 1.0, eta: 0.28 }
+];
+
+const GRADES = [
+  { id: 'none', name: '無断熱（1980年より前の家）', desc: '断熱材がほとんど無い。アルミサッシ＋単板ガラス。', wall: 2.4, roof: 2.0, floor: 2.5, win: 'al1', inf: 0.5 },
+  { id: 'g3', name: '断熱等級3（1992年基準・築20〜30年）', desc: '薄い断熱材（グラスウール50mm程度）。アルミサッシ＋単板ガラス。', wall: 0.95, roof: 0.60, floor: 0.95, win: 'al1', inf: 0.3 },
+  { id: 'g4', name: '断熱等級4（2016年基準・現行の最低ライン）', desc: 'グラスウール100mm程度。アルミサッシ＋複層ガラス。', wall: 0.53, roof: 0.24, floor: 0.48, win: 'al2', inf: 0.2 },
+  { id: 'g5', name: '断熱等級5（ZEH水準）', desc: '高性能グラスウール105mm程度。アルミ樹脂複合サッシ＋Low-E複層。', wall: 0.43, roof: 0.19, floor: 0.34, win: 'ar2g', inf: 0.15 },
+  { id: 'g6', name: '断熱等級6（HEAT20 G2）', desc: '付加断熱あり。樹脂サッシ＋Low-E複層（アルゴン）。', wall: 0.30, roof: 0.15, floor: 0.28, win: 'pv2g', inf: 0.10 },
+  { id: 'g7', name: '断熱等級7（HEAT20 G3）', desc: '厚い付加断熱。樹脂サッシ＋トリプルガラス。', wall: 0.18, roof: 0.10, floor: 0.18, win: 'pv3g', inf: 0.05 }
+];
+
+const WIN_TYPES = [
+  { id: 'hakidashi', name: '掃き出し窓', w: 1.65, h: 2.0 },
+  { id: 'koshi', name: '腰窓', w: 1.65, h: 1.1 },
+  { id: 'small', name: '小窓', w: 0.6, h: 0.9 }
+];
+const ORIS = [
+  { id: 'S', name: '南', az: 0 }, { id: 'E', name: '東', az: -90 }, { id: 'W', name: '西', az: 90 }, { id: 'N', name: '北', az: 180 }
+];
+
+const CONST = {
+  storyH: 2.8, ceilH: 2.4, floorB: 0.7, rhoCp: 0.34, mechACH: 0.5, tiH: 20, tiC: 27, intGain: 4.0,
+  cmPerM2: 110000, incFactor: 0.9, eaveGap: 0.15, coolTeMin: 20, opFactor: { full: { h: 1, c: 1 }, partial: { h: 0.45, c: 0.5 } },
+  overheatT: 30, ventACH: 4, shadeTeMin: 15, midMonths: [4, 10]   // 中間期＝5月・11月（0始まりの月index）
+};
+// 外気の日較差（日最高−日最低）の概略値 K（地域区分ごと）
+const DIURNAL = { 1: 9, 2: 8, 3: 9, 4: 8, 5: 9, 6: 8, 7: 8, 8: 6 };
+// 夏の日よけ：日射熱の残存率
+const SHADE_OPTS = [
+  { id: 'none', name: 'なし', f: 1.0 },
+  { id: 'inner', name: '室内カーテン・ブラインド', f: 0.7 },
+  { id: 'screen', name: '外付けスクリーン・すだれ', f: 0.4 },
+  { id: 'shutter', name: '外付けシャッター・外付けブラインド', f: 0.2 }
+];
+const NB_DIST = [
+  { v: 0, name: '建物なし（開けている）' }, { v: 1, name: '1 m（隣接）' }, { v: 2, name: '2 m' }, { v: 4, name: '4 m' }, { v: 6, name: '6 m（道路をはさむ）' }, { v: 10, name: '10 m 以上' }
+];
+const NB_HEIGHT = [
+  { v: 3.5, name: '平屋（3.5 m）' }, { v: 7, name: '2階建て（7 m）' }, { v: 10, name: '3階建て（10 m）' }, { v: 15, name: 'マンション等（15 m）' }, { v: 25, name: '高層（25 m以上）' }
+];
+const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const MONTH_N = [17, 47, 75, 105, 135, 162, 198, 228, 258, 288, 318, 344];
+const RAD = Math.PI / 180;
+
+/* =====================================================================
+ *  日射計算：水平面全天日射 → 方位別鉛直面（庇の影を考慮）
+ *  戻り値: 月積算 kWh/㎡（窓面に入射する日射、庇遮蔽後）
+ * ===================================================================== */
+const solarCache = new Map();
+function solarMonth(region, m, az, hw, d, obs) {
+  obs = obs || 0;
+  const key = `${region.id}|${m}|${az}|${hw}|${d}|${obs.toFixed(3)}`;
+  if (solarCache.has(key)) return solarCache.get(key);
+  const phi = region.lat * RAD, n = MONTH_N[m];
+  const dec = 23.45 * RAD * Math.sin(2 * Math.PI * (284 + n) / 365);
+  const ws = Math.acos(Math.max(-1, Math.min(1, -Math.tan(phi) * Math.tan(dec))));
+  const H = region.gh[m];
+  const H0 = 37.59 * (1 + 0.033 * Math.cos(2 * Math.PI * n / 365)) * (Math.cos(phi) * Math.cos(dec) * Math.sin(ws) + ws * Math.sin(phi) * Math.sin(dec));
+  const KT = Math.max(0.2, Math.min(0.8, H / H0));
+  let kd = ws <= 81.4 * RAD ? 1.391 - 3.560 * KT + 4.189 * KT * KT - 2.137 * KT ** 3 : 1.311 - 3.022 * KT + 3.427 * KT * KT - 1.821 * KT ** 3;
+  kd = Math.max(0.15, Math.min(0.95, kd));
+  const Hd = H * kd;
+  const a = 0.409 + 0.5016 * Math.sin(ws - 60 * RAD), b = 0.6609 - 0.4767 * Math.sin(ws - 60 * RAD);
+  const g = az * RAD, gap = CONST.eaveGap;
+  const step = 3.75 * RAD, dt = 0.25;
+  const fd = (1 - 0.5 * Math.min(1, d / (hw + gap))) * (1 - Math.sin(obs));  // 庇と隣の建物による天空の見え方の減少
+  const tanObs = Math.tan(obs);
+  let beam = 0, diff = 0;
+  for (let w = -ws + step / 2; w < ws; w += step) {
+    const rd = (Math.PI / 24) * (Math.cos(w) - Math.cos(ws)) / (Math.sin(ws) - ws * Math.cos(ws));
+    const rt = rd * (a + b * Math.cos(w));
+    const I = Math.max(0, rt * H * dt), Id = Math.min(I, Math.max(0, rd * Hd * dt)), Ib = I - Id;
+    const cz = Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(w);
+    if (cz <= 0.01) continue;
+    diff += Id * 0.5 * fd + I * 0.2 * 0.5;
+    const alt = Math.asin(cz), ca = Math.cos(alt);
+    const sg = Math.cos(dec) * Math.sin(w) / ca;
+    const cg = (cz * Math.sin(phi) - Math.sin(dec)) / (ca * Math.cos(phi));
+    const gs = Math.atan2(sg, cg);
+    const cosInc = ca * Math.cos(gs - g);
+    if (cosInc <= 0) continue;
+    const tanProfile = Math.tan(alt) / Math.cos(gs - g);   // プロファイル角（外壁に直角な面での太陽高度）
+    if (obs > 0 && tanProfile < tanObs) continue;          // 隣の建物の影に入る
+    let Ibv = Ib * cosInc / Math.max(cz, 0.087);
+    if (d > 0) {
+      const s = d * tanProfile;
+      const f = Math.max(0, Math.min(1, (s - gap) / hw));
+      Ibv *= (1 - f);
+    }
+    beam += Ibv;
+  }
+  const days = MONTH_DAYS[m];
+  const res = { beam: beam * days / 3.6, diff: diff * days / 3.6 };
+  solarCache.set(key, res);
+  return res;
+}
+
+/* =====================================================================
+ *  熱需要モデル
+ * ===================================================================== */
+function envelopeSpec(st) {
+  const gr = GRADES.find(g => g.id === st.grade);
+  const winId = st.win === 'auto' ? gr.win : st.win;
+  const ws = WIN_SPECS.find(w => w.id === winId);
+  return { uWall: st.uWall, uRoof: st.uRoof, uFloor: st.uFloor, inf: st.inf, winU: ws.u, winEta: ws.eta, winName: ws.name, gradeName: gr.name };
+}
+
+function geometry(st) {
+  const Af = st.area / st.stories;
+  const W = Math.sqrt(Af * st.shape), D = Af / W;
+  const h = CONST.storyH * st.stories;
+  const gross = { S: W * h, N: W * h, E: D * h, W: D * h };
+  const win = {}, winByType = {};
+  let warn = null;
+  ORIS.forEach(o => {
+    let a = 0;
+    winByType[o.id] = {};
+    WIN_TYPES.forEach(t => {
+      const cnt = st.windows[o.id][t.id] || 0;
+      const sz = st.winSize[t.id];
+      const area = cnt * sz.w * sz.h;
+      winByType[o.id][t.id] = { count: cnt, area, h: sz.h, w: sz.w };
+      a += area;
+    });
+    if (a > gross[o.id] * 0.9) { warn = `${o.name}面の窓が外壁面積の90%を超えています（外壁 ${gross[o.id].toFixed(1)}㎡）。窓の数を減らしてください。`; }
+    win[o.id] = Math.min(a, gross[o.id] * 0.9);
+  });
+  const wallNet = {};
+  ORIS.forEach(o => wallNet[o.id] = gross[o.id] - win[o.id]);
+  const totWin = Object.values(win).reduce((x, y) => x + y, 0);
+  const totWall = Object.values(wallNet).reduce((x, y) => x + y, 0);
+  return { Af, W, D, gross, win, winByType, wallNet, totWin, totWall, roof: Af, floor: Af, volume: st.area * CONST.ceilH, warn, envArea: totWin + totWall + 2 * Af };
+}
+
+function calc(st) {
+  const region = REGIONS.find(r => r.id === st.region);
+  const env = envelopeSpec(st);
+  const g = geometry(st);
+  const Htr = { wall: env.uWall * g.totWall, roof: env.uRoof * g.roof, floor: env.uFloor * g.floor * CONST.floorB, win: env.winU * g.totWin };
+  const Hve = { vent: CONST.rhoCp * g.volume * CONST.mechACH * (1 - st.hrv), inf: CONST.rhoCp * g.volume * env.inf };
+  const H = Htr.wall + Htr.roof + Htr.floor + Htr.win + Hve.vent + Hve.inf;
+  const UA = (Htr.wall + Htr.roof + Htr.floor + Htr.win) / g.envArea;
+  const tau = CONST.cmPerM2 * st.area / H / 3600;
+  const aH = 1 + tau / 15;
+  const etaH = (gam) => gam <= 0 ? 1 : (Math.abs(gam - 1) < 1e-6 ? aH / (aH + 1) : (1 - Math.pow(gam, aH)) / (1 - Math.pow(gam, aH + 1)));
+  const etaC = (gam) => gam <= 0 ? 1 : (Math.abs(gam - 1) < 1e-6 ? aH / (aH + 1) : (1 - Math.pow(gam, -aH)) / (1 - Math.pow(gam, -(aH + 1))));
+  const eaveFor = (oid) => st.eaveSide === 'ALL' || (st.eaveSide === 'SEW' && oid !== 'N') || (st.eaveSide === 'S' && oid === 'S') ? st.eave : 0;
+
+  // 隣の建物による遮蔽角（外壁の中央高さから見た仰角）
+  const hMid = CONST.storyH * st.stories / 2;
+  const obsFor = (oid) => { const nb = st.nb[oid]; return nb.d > 0 ? Math.atan(Math.max(0, nb.h - hMid) / nb.d) : 0; };
+  const shadeFor = (oid) => (SHADE_OPTS.find(s => s.id === st.shade[oid]) || SHADE_OPTS[0]).f;
+  // 冷暖房なしの室温推定用
+  const C_kWhK = CONST.cmPerM2 * st.area / 3.6e6;                 // 熱容量 kWh/K
+  const dr = DIURNAL[st.region] || 8;
+
+  const months = [];
+  const solarOri = {}; ORIS.forEach(o => solarOri[o.id] = { winter: 0, summer: 0 });
+  const loss = { wall: 0, roof: 0, floor: 0, win: 0, vent: 0, inf: 0 }, gain = { solar: 0, internal: 0 };
+  for (let m = 0; m < 12; m++) {
+    const days = MONTH_DAYS[m], t = days * 24, Te = region.t[m];
+    const coolSeason = Te >= CONST.coolTeMin;
+    let Qsol = 0; const solByOri = {};
+    ORIS.forEach(o => {
+      let q = 0;
+      const d = eaveFor(o.id), obs = obsFor(o.id);
+      WIN_TYPES.forEach(tp => {
+        const wt = g.winByType[o.id][tp.id];
+        if (wt.area <= 0) return;
+        const s = solarMonth(region, m, o.az, wt.h, d, obs);
+        q += wt.area * env.winEta * CONST.incFactor * (s.beam + s.diff);
+      });
+      if (Te >= CONST.shadeTeMin) q *= shadeFor(o.id);   // 日よけは初夏〜初秋（月平均15℃以上）に使用
+      solByOri[o.id] = q; Qsol += q;
+    });
+    const Qint = CONST.intGain * st.area * t / 1000;
+    const Qgn = Qsol + Qint;
+    const QhtH = H * (CONST.tiH - Te) * t / 1000;
+    const heat = QhtH > 0 ? Math.max(0, QhtH - etaH(Qgn / QhtH) * Qgn) : 0;
+    const QhtC = H * (CONST.tiC - Te) * t / 1000;
+    let cool = 0;
+    if (coolSeason) cool = QhtC <= 0 ? Qgn - QhtC : Math.max(0, Qgn - etaC(Qgn / QhtC) * QhtC);
+    // 冷暖房なしの室温（窓を閉めた状態）
+    const Hfree = H + (st.vent && Te >= CONST.coolTeMin ? CONST.rhoCp * g.volume * CONST.ventACH : 0);  // 夏の窓開け通風
+    const tauF = CONST.cmPerM2 * st.area / Hfree / 3600, attF = 1 / Math.sqrt(1 + Math.pow(2 * Math.PI * tauF / 24, 2));
+    const tiFree = Te + Qgn * 1000 / (Hfree * t);
+    const dTsol = Math.min(8, 0.5 * (Qsol / days) / (C_kWhK + Hfree * 12 / 1000));  // 日中の日射による上昇（熱容量と日中の放熱で緩和）
+    const tiMax = tiFree + attF * dr * 0.55 + dTsol;
+    const tiMin = tiFree - attF * dr * 0.45 - dTsol * 0.5;
+    months.push({ Te, heat, cool, Qsol, Qint, QhtH, QhtC, solByOri, tiFree, tiMax, tiMin, teMax: Te + dr * 0.55, teMin: Te - dr * 0.45 });
+    if (heat > 0) {
+      const dT = (CONST.tiH - Te) * t / 1000;
+      loss.wall += Htr.wall * dT; loss.roof += Htr.roof * dT; loss.floor += Htr.floor * dT; loss.win += Htr.win * dT; loss.vent += Hve.vent * dT; loss.inf += Hve.inf * dT;
+      gain.solar += Qsol; gain.internal += Qint;
+      ORIS.forEach(o => solarOri[o.id].winter += solByOri[o.id]);
+    }
+    if (cool > 0) ORIS.forEach(o => solarOri[o.id].summer += solByOri[o.id]);
+  }
+  const heatFull = months.reduce((s, x) => s + x.heat, 0), coolFull = months.reduce((s, x) => s + x.cool, 0);
+  const f = CONST.opFactor[st.op];
+  const heat = heatFull * f.h, cool = coolFull * f.c;
+  const elecH = heat / st.copH, elecC = cool / st.copC;
+  const cost = (elecH + elecC) * st.price, co2 = (elecH + elecC) * st.co2;
+  // 季節の代表月と オーバーヒート判定
+  const idx = [...Array(12).keys()];
+  const coldest = idx.reduce((a, b) => months[b].Te < months[a].Te ? b : a, 0);
+  const hottest = idx.reduce((a, b) => months[b].Te > months[a].Te ? b : a, 0);
+  const mid = idx.filter(i => i >= 2 && i <= 5).reduce((a, b) => Math.abs(months[b].Te - 17) < Math.abs(months[a].Te - 17) ? b : a, 3);
+  // 中間期（5月・11月）のオーバーヒート判定
+  const midMonths = CONST.midMonths.slice();
+  const overheatMonths = midMonths.filter(i => months[i].tiMax > CONST.overheatT);
+  const peak = midMonths.length ? Math.max(...midMonths.map(i => months[i].tiMax)) : months[mid].tiMax;
+  return { region, env, g, Htr, Hve, H, UA, tau, months, heatFull, coolFull, heat, cool, elecH, elecC, cost, co2, loss, gain, solarOri, f,
+    perM2: (heatFull + coolFull) / st.area, seasons: { coldest, mid, hottest }, midMonths, overheatMonths, peak };
+}
+
+
+/* =====================================================================
+ *  かんたん版：入力 → フル版の入力形式に変換して同じエンジンで計算
+ * ===================================================================== */
+const SOUTH = { few: { hakidashi: 1, koshi: 1, small: 0 }, std: { hakidashi: 2, koshi: 2, small: 0 }, many: { hakidashi: 3, koshi: 2, small: 0 } };
+// 都道府県 → 地域区分（県庁所在地の区分を目安に）
+const PREFS = [
+  ['北海道', 2], ['青森県', 3], ['岩手県', 3], ['宮城県', 4], ['秋田県', 4], ['山形県', 4], ['福島県', 4],
+  ['茨城県', 5], ['栃木県', 5], ['群馬県', 5], ['埼玉県', 6], ['千葉県', 6], ['東京都', 6], ['神奈川県', 6],
+  ['新潟県', 5], ['富山県', 5], ['石川県', 5], ['福井県', 5], ['山梨県', 5], ['長野県', 4], ['岐阜県', 6], ['静岡県', 6], ['愛知県', 6], ['三重県', 6],
+  ['滋賀県', 5], ['京都府', 6], ['大阪府', 6], ['兵庫県', 6], ['奈良県', 6], ['和歌山県', 6],
+  ['鳥取県', 5], ['島根県', 5], ['岡山県', 6], ['広島県', 6], ['山口県', 6], ['徳島県', 6], ['香川県', 6], ['愛媛県', 6], ['高知県', 6],
+  ['福岡県', 6], ['佐賀県', 6], ['長崎県', 6], ['熊本県', 6], ['大分県', 6], ['宮崎県', 7], ['鹿児島県', 7], ['沖縄県', 8]
+];
+// 断熱等級のやさしい説明（表示用）
+const GRADE_PLAIN = {
+  none: { t: '昔ながらの家', d: '1980年より前に建てられた、断熱材がほとんど入っていない家。窓は1枚ガラス。' },
+  g3: { t: '少しだけ断熱された家', d: '1990年代〜2000年代に多い、薄い断熱材の家。窓はアルミ枠の1枚ガラス。' },
+  g4: { t: '今の最低基準の家（断熱等級4）', d: '2025年から新築に義務づけられた最低ライン。窓はアルミ枠の2枚ガラス。' },
+  g5: { t: 'ZEH（ゼッチ）レベルの家（断熱等級5）', d: '国が普及を進める省エネ住宅の水準。窓は樹脂とアルミの複合枠に2枚ガラス。' },
+  g6: { t: '高断熱の家（断熱等級6）', d: '冬でも暖房が少なくてすむレベル。壁の断熱を厚くし、窓は樹脂枠の2枚ガラス。' },
+  g7: { t: '最高レベルの断熱の家（断熱等級7）', d: '断熱材をとても厚くし、窓は樹脂枠の3枚ガラス。暖房がほとんどいらない家。' }
+};
+const prefName = (id) => (PREFS.find(p => p[1] === id) || [''])[0];
+function defaultLite() { return { pref: '鹿児島県', region: 7, grade: 'g6', area: 120, stories: 2, south: 'std', eave: 0.6, shade: 0, op: 'partial', baseline: 'g4' }; }
+let lite = defaultLite();
+
+function toFullState(l, gradeId) {
+  const g = GRADES.find(x => x.id === gradeId) || GRADES[2];
+  const sh = l.shade ? 'screen' : 'none';
+  return {
+    region: l.region, grade: g.id, win: 'auto', uWall: g.wall, uRoof: g.roof, uFloor: g.floor, inf: g.inf,
+    area: l.area, stories: l.stories, shape: 1.25,
+    windows: { S: Object.assign({}, SOUTH[l.south] || SOUTH.std), E: { hakidashi: 0, koshi: 1, small: 1 }, W: { hakidashi: 0, koshi: 1, small: 1 }, N: { hakidashi: 0, koshi: 1, small: 2 } },
+    winSize: { hakidashi: { w: 1.65, h: 2.0 }, koshi: { w: 1.65, h: 1.1 }, small: { w: 0.6, h: 0.9 } },
+    eave: l.eave, eaveSide: 'ALL', hrv: 0, op: l.op, vent: 0,
+    shade: { S: sh, E: sh, W: sh, N: 'none' },
+    nb: { S: { d: 0, h: 7 }, E: { d: 0, h: 7 }, W: { d: 0, h: 7 }, N: { d: 0, h: 7 } },
+    price: 31, copH: 3.0, copC: 3.5, co2: 0.434
+  };
+}
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n, d = 0) => (Math.round(n * 10 ** d) / 10 ** d).toLocaleString('ja-JP', { minimumFractionDigits: d, maximumFractionDigits: d });
+const short = (name) => name.split('（')[0];
+
+function buildUI() {
+  $('pref').innerHTML = PREFS.map(p => `<option value="${p[0]}">${p[0]}</option>`).join('');
+  $('region').innerHTML = REGIONS.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  $('grades').innerHTML = GRADES.map(g => { const p = GRADE_PLAIN[g.id] || { t: g.name, d: g.desc }; return `<label class="card" data-id="${g.id}"><input type="radio" name="grade" value="${g.id}"><span><b>${p.t}</b><small>${p.d}</small></span></label>`; }).join('');
+  $('areaPresets').innerHTML = [80, 100, 120, 150].map(a => `<button data-a="${a}">${a}㎡<br><small style="font-weight:400;color:var(--muted)">約${Math.round(a / 3.3)}坪</small></button>`).join('');
+  $('stories').innerHTML = [1, 2, 3].map(s => `<button data-s="${s}">${s}階建て</button>`).join('');
+  $('baseline').innerHTML = GRADES.map(g => `<option value="${g.id}">${(GRADE_PLAIN[g.id] || { t: g.name }).t}</option>`).join('');
+  $('pref').addEventListener('change', e => { lite.pref = e.target.value; const p = PREFS.find(x => x[0] === lite.pref); if (p) lite.region = p[1]; update(); });
+  $('region').addEventListener('change', e => { lite.region = +e.target.value; lite.pref = ''; update(); });
+  $('grades').addEventListener('change', e => { lite.grade = e.target.value; update(); });
+  $('areaPresets').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { lite.area = +b.dataset.a; update(); } });
+  $('stories').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { lite.stories = +b.dataset.s; update(); } });
+  $('south').addEventListener('change', e => { lite.south = e.target.value; update(); });
+  $('eave').addEventListener('change', e => { lite.eave = +e.target.value; update(); });
+  $('shade').addEventListener('change', e => { lite.shade = +e.target.value; update(); });
+  $('op').addEventListener('change', e => { lite.op = e.target.value; update(); });
+  $('baseline').addEventListener('change', e => { lite.baseline = e.target.value; update(); });
+  $('copyLink').addEventListener('click', () => {
+    const url = location.origin + location.pathname + '#s=' + encodeURIComponent(JSON.stringify(lite));
+    const done = () => { $('copyLink').textContent = 'コピーしました'; setTimeout(() => $('copyLink').textContent = 'この条件のリンクをコピー', 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, () => prompt('このリンクをコピーしてください', url)); else prompt('このリンクをコピーしてください', url);
+  });
+  $('printBtn').addEventListener('click', () => window.print());
+}
+
+function syncInputs() {
+  $('region').value = lite.region;
+  $('pref').value = lite.pref || '';
+  const reg = REGIONS.find(r => r.id === lite.region);
+  $('regionNote').textContent = lite.pref ? `${lite.pref} → ${reg.name} の気象で計算します（県庁所在地の区分。山間部など寒い地域は下の「細かく選ぶ」で調整できます）` : `${reg.name} の気象で計算します`;
+  document.querySelectorAll('#grades .card').forEach(c => { const on = c.dataset.id === lite.grade; c.classList.toggle('sel', on); c.querySelector('input').checked = on; });
+  document.querySelectorAll('#areaPresets button').forEach(b => b.classList.toggle('sel', +b.dataset.a === lite.area));
+  document.querySelectorAll('#stories button').forEach(b => b.classList.toggle('sel', +b.dataset.s === lite.stories));
+  $('south').value = lite.south; $('eave').value = String(lite.eave); $('shade').value = String(lite.shade); $('op').value = lite.op; $('baseline').value = lite.baseline;
+}
+
+function pctBig(c, b) {
+  if (b <= 0 && c <= 0) return { v: '±0%', cls: 'flat' };
+  if (b <= 0) return { v: '増加', cls: 'bad' };
+  const p = (c - b) / b * 100;
+  if (Math.abs(p) < 0.5) return { v: '±0%', cls: 'flat' };
+  return { v: (p < 0 ? '−' : '＋') + Math.round(Math.abs(p)) + '%', cls: p < 0 ? 'good' : 'bad' };
+}
+function rankOf(perM2) {
+  if (perM2 < 30) return { r: 'S', c: '#1f6f8b', t: 'とても少ないエネルギーで快適に暮らせる家' };
+  if (perM2 < 50) return { r: 'A', c: '#2e8b57', t: '省エネ性能が高い家（ZEH〜HEAT20相当）' };
+  if (perM2 < 80) return { r: 'B', c: '#8fb339', t: '現行基準相当。工夫でさらに良くなる' };
+  if (perM2 < 120) return { r: 'C', c: '#e0a030', t: '光熱費が高め。断熱・窓の改善で効果大' };
+  return { r: 'D', c: '#c0392b', t: '熱が逃げやすい家。断熱改修を強くおすすめ' };
+}
+
+function update() {
+  syncInputs();
+  const cur = calc(toFullState(lite, lite.grade));
+  const bas = calc(toFullState(lite, lite.baseline));
+  const bg = GRADES.find(g => g.id === lite.baseline);
+  const plainName = (id) => (GRADE_PLAIN[id] || { t: id }).t;
+  $('summaryLine').innerHTML = `<b>あなたの家</b>：${plainName(lite.grade)}・${lite.area}㎡・${lite.stories}階建て・${lite.pref || cur.region.name}<br><b>比べる家</b>：同じ広さ・同じ窓で「${plainName(bg.id)}」にした場合`;
+  renderVerdict(cur, bas);
+  renderVs(cur, bas);
+  renderEquiv(cur, bas);
+  renderRank(cur, bas);
+  renderThermo(cur, bas);
+  try { history.replaceState(null, '', '#s=' + encodeURIComponent(JSON.stringify(lite))); } catch (e) { }
+}
+
+/* ---- 一言の判定 ---- */
+function renderVerdict(cur, bas) {
+  const tot = cur.heat + cur.cool, btot = bas.heat + bas.cool;
+  const dKwh = tot - btot, dCost = cur.cost - bas.cost;
+  const pct = btot > 0 ? Math.round(Math.abs(dKwh) / btot * 100) : 0;
+  let face, head, sub, cls;
+  if (Math.abs(dCost) < 100) {
+    face = '😐'; cls = 'same'; head = '比べる家と、ほぼ同じ燃費です。'; sub = '断熱や窓の条件を変えて、どう変わるか試してみよう。';
+  } else if (dCost < 0) {
+    face = pct >= 40 ? '🤩' : '😊'; cls = 'good';
+    head = `電気代が 1年で <b>約${yen(-dCost)}</b> おトク！`;
+    sub = `冷暖房に使うエネルギーが、比べる家より <b>${pct}%</b> 少なくてすみます。10年なら 約${yen(-dCost * 10)}、30年なら 約${yen(-dCost * 30)} の差になります。`;
+  } else {
+    face = pct >= 40 ? '😰' : '😓'; cls = 'bad';
+    head = `電気代が 1年で <b>約${yen(dCost)}</b> 多くかかります。`;
+    sub = `冷暖房に使うエネルギーが、比べる家より <b>${pct}%</b> 多くなります。10年なら 約${yen(dCost * 10)} の差です。`;
+  }
+  $('verdict').innerHTML = `<div class="verdict ${cls}"><div class="face">${face}</div><div><div class="head">${head}</div><div class="sub">${sub}</div></div></div>`;
+}
+function yen(v) { v = Math.abs(v); return v >= 10000 ? fmt(v / 10000, v >= 100000 ? 0 : 1) + '万円' : fmt(v) + '円'; }
+
+/* ---- 家2軒の比べっこ（比べる家を100としたときの長さ） ---- */
+function renderVs(cur, bas) {
+  const btot = Math.max(1, bas.heat + bas.cool);
+  const rows = [
+    { name: 'あなたの家', r: cur, color: '#1f6f8b', roof: '#e07a2f' },
+    { name: '比べる家', r: bas, color: '#8a94a3', roof: '#b9c0c9' }
+  ];
+  const W = 560, rowH = 92, H = rowH * 2 + 34, left = 86, right = 70, bw = W - left - right;
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="冷暖房エネルギーの比較">`;
+  s += `<text x="${left}" y="16" font-size="12" fill="#5d6b7a">1年間の冷暖房エネルギー（比べる家を 100 としたとき）</text>`;
+  rows.forEach((row, i) => {
+    const y0 = 26 + i * rowH;
+    const h = row.r.heat / btot * bw, c = row.r.cool / btot * bw, idx = Math.round((row.r.heat + row.r.cool) / btot * 100);
+    // 家のアイコン
+    const hx = 14, hy = y0 + 10;
+    s += `<polygon points="${hx + 26},${hy} ${hx},${hy + 22} ${hx + 52},${hy + 22}" fill="${row.roof}"/>`;
+    s += `<rect x="${hx + 7}" y="${hy + 22}" width="38" height="30" fill="${row.color}" rx="2"/>`;
+    s += `<rect x="${hx + 21}" y="${hy + 36}" width="10" height="16" fill="#fff" opacity=".85"/>`;
+    s += `<text x="${hx + 26}" y="${hy + 68}" text-anchor="middle" font-size="12" font-weight="700" fill="#1d2733">${row.name}</text>`;
+    // バー
+    const by = y0 + 22, bh = 30;
+    s += `<rect x="${left}" y="${by}" width="${bw}" height="${bh}" fill="#f1f4f7" rx="6"/>`;
+    s += `<rect x="${left}" y="${by}" width="${Math.max(0, h)}" height="${bh}" fill="var(--heat)" rx="6"/>`;
+    s += `<rect x="${left + h}" y="${by}" width="${Math.max(0, c)}" height="${bh}" fill="var(--cool)"/>`;
+    if (h > 70) s += `<text x="${left + h / 2}" y="${by + 20}" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">🔥 暖房</text>`;
+    if (c > 70) s += `<text x="${left + h + c / 2}" y="${by + 20}" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">❄️ 冷房</text>`;
+    s += `<text x="${left + Math.min(bw, h + c) + 8}" y="${by + 20}" font-size="20" font-weight="800" fill="${i === 0 ? '#1f6f8b' : '#5d6b7a'}">${idx}</text>`;
+    s += `<text x="${left}" y="${by + bh + 16}" font-size="11" fill="#5d6b7a">暖房 ${fmt(row.r.heat)} kWh ＋ 冷房 ${fmt(row.r.cool)} kWh ＝ ${fmt(row.r.heat + row.r.cool)} kWh／年</text>`;
+  });
+  s += `</svg>`;
+  $('vs').innerHTML = `<div class="vs">${s}<p class="note" style="margin:4px 0 0">kWh（キロワット時）は電気の量の単位。バーが短いほど、少ないエネルギーで暮らせる家です。</p></div>`;
+}
+
+/* ---- 身近なものにたとえると ---- */
+function renderEquiv(cur, bas) {
+  const dKwh = (bas.heat + bas.cool) - (cur.heat + cur.cool);   // プラス＝あなたの家が少ない
+  const dCo2 = bas.co2 - cur.co2;
+  const dCost = bas.cost - cur.cost;
+  const less = dKwh >= 0;
+  const months = Math.abs(dKwh) / 350, trees = Math.abs(dCo2) / 8.8;
+  const word = less ? '少ない' : '多い';
+  if (Math.abs(dKwh) < 20) { $('equiv').innerHTML = ''; return; }
+  $('equiv').innerHTML = `<h3 class="eq-title">その差を、身近なものにたとえると…</h3>
+  <div class="eq">
+    <div class="eq-tile"><div class="ic">⚡</div><div class="big">${months < 1 ? fmt(months, 1) : fmt(months, 0)}<small>か月分</small></div><div class="t">ふつうの家が1か月に使う電気（約350 kWh）の<br>${fmt(months < 1 ? months : Math.round(months), months < 1 ? 1 : 0)}か月分、${word}</div></div>
+    <div class="eq-tile"><div class="ic">🌲</div><div class="big">${fmt(trees, trees < 10 ? 1 : 0)}<small>本分</small></div><div class="t">スギの木が1年間に吸うCO2（1本 約8.8 kg）の<br>${fmt(trees, trees < 10 ? 1 : 0)}本分、CO2が${word}</div></div>
+    <div class="eq-tile"><div class="ic">💰</div><div class="big">${yen(dCost)}<small>／年</small></div><div class="t">電気代の差。毎月にすると 約${fmt(Math.abs(dCost) / 12)}円<br>${less ? '安く' : '高く'}なります</div></div>
+  </div>`;
+}
+
+/* ---- 成績表（S〜D の目盛り） ---- */
+function renderRank(cur, bas) {
+  const ranks = [
+    { r: 'S', c: '#1f6f8b', w: 'すごい！' }, { r: 'A', c: '#2e8b57', w: 'とても良い' }, { r: 'B', c: '#8fb339', w: 'ふつう' },
+    { r: 'C', c: '#e0a030', w: 'もう少し' }, { r: 'D', c: '#c0392b', w: 'がんばろう' }
+  ];
+  const rk = rankOf(cur.perM2), rb = rankOf(bas.perM2);
+  const me = ranks.findIndex(x => x.r === rk.r), you = ranks.findIndex(x => x.r === rb.r);
+  const cells = ranks.map((x, i) => `<div class="rk ${i === me ? 'me' : ''} ${i === you ? 'you' : ''}" style="--c:${x.c}"><div class="rl">${x.r}</div><div class="rw">${x.w}</div>${i === me ? '<div class="pin">▲ あなたの家</div>' : ''}${i === you && i !== me ? '<div class="pin you">△ 比べる家</div>' : ''}${i === you && i === me ? '<div class="pin you">△ 比べる家も同じ</div>' : ''}</div>`).join('');
+  $('rank').innerHTML = `<div class="rank-row"><div class="badge" style="background:${rk.c}">${rk.r}</div><div><b style="font-size:17px">あなたの家は「${rk.r}」ランク</b><br><span class="note">${rk.t}</span></div></div>
+    <div class="rank-scale">${cells}</div>
+    <p class="note" style="margin:6px 0 0">家の広さ1㎡あたり、1年に冷暖房で必要なエネルギーの少なさで決めています。左にいくほど、少ないエネルギーで快適にすごせる家です。</p>`;
+}
+
+/* ---- 温度計（5月・11月） ---- */
+function renderThermo(cur, bas) {
+  const tubes = cur.midMonths.map(i => {
+    const v = cur.months[i].tiMax, b = bas.months[i].tiMax, te = cur.months[i].teMax, over = v > CONST.overheatT;
+    const W = 215, H = 230, x = 98, top = 18, bottom = 44, lo = 10, hi = 40;
+    const y = t => top + (H - top - bottom) * (1 - (Math.min(hi, Math.max(lo, t)) - lo) / (hi - lo));
+    const col = v >= 30 ? '#c0392b' : v >= 28 ? '#e0a030' : '#2e8b57';
+    let s = `<svg viewBox="0 0 ${W} ${H}" class="thermo" role="img" aria-label="${i + 1}月の室温">`;
+    s += `<rect x="${x - 11}" y="${top - 6}" width="22" height="${H - bottom - top + 6}" rx="11" fill="#eef2f5" stroke="#d9e0e7"/>`;
+    s += `<circle cx="${x}" cy="${H - bottom + 8}" r="18" fill="#eef2f5" stroke="#d9e0e7"/>`;
+    s += `<rect x="${x - 6}" y="${y(v)}" width="12" height="${H - bottom + 8 - y(v)}" fill="${col}"/>`;
+    s += `<circle cx="${x}" cy="${H - bottom + 8}" r="13" fill="${col}"/>`;
+    for (let t = lo; t <= hi; t += 10) s += `<line x1="${x + 14}" x2="${x + 20}" y1="${y(t)}" y2="${y(t)}" stroke="#8a94a3"/><text x="${x + 24}" y="${y(t) + 4}" font-size="10" fill="#5d6b7a">${t}℃</text>`;
+    s += `<line x1="${x - 24}" x2="${x + 20}" y1="${y(30)}" y2="${y(30)}" stroke="#c0392b" stroke-dasharray="3 2"/><text x="${x + 24}" y="${y(30) - 6}" font-size="10" fill="#c0392b" font-weight="700">30℃ 暑すぎライン</text>`;
+    s += `<line x1="${x - 24}" x2="${x + 20}" y1="${y(28)}" y2="${y(28)}" stroke="#e0a030" stroke-dasharray="3 2"/><text x="${x + 24}" y="${y(28) + 11}" font-size="10" fill="#b8860b" font-weight="700">28℃ 暑いライン</text>`;
+    s += `<line x1="${x - 30}" x2="${x - 14}" y1="${y(b)}" y2="${y(b)}" stroke="#8a94a3" stroke-width="2"/><text x="${x - 32}" y="${y(b) + 4}" text-anchor="end" font-size="10" fill="#5d6b7a">比べる家 ${fmt(b, 0)}℃</text>`;
+    s += `<line x1="${x - 30}" x2="${x - 14}" y1="${y(te)}" y2="${y(te)}" stroke="#2b7fc2" stroke-width="2"/><text x="${x - 32}" y="${y(te) + 4}" text-anchor="end" font-size="10" fill="#2b7fc2">外の気温 ${fmt(te, 0)}℃</text>`;
+    s += `</svg>`;
+    return `<div class="th"><div class="th-m">${i + 1}月</div>${s}<div class="th-v" style="color:${col}">${fmt(v, 0)}℃ ${over ? '😓' : '😊'}</div><div class="note">部屋の温度（昼間の最高）</div></div>`;
+  }).join('');
+  const n = cur.overheatMonths.length, bn = bas.overheatMonths.length;
+  const cls = n === 0 ? 'low' : n === 1 ? 'mid' : 'high', label = n === 0 ? '低い' : n === 1 ? '注意' : '高い';
+  const mlist = cur.overheatMonths.map(i => `${i + 1}月`).join('・');
+  let tip = '';
+  if (n > 0) tip = lite.shade ? (lite.eave < 0.9 ? 'ひさしを深くする、夜に窓を開けて風を通すなどで下げられます。' : '夜に窓を開けて風を通す、日ざしを抑えるガラスにするなども有効です。') : '南・東・西の窓に「夏の日よけ」を付けると下がります（上の④で試せます）。';
+  $('tempCard').innerHTML = `<div class="thermos">${tubes}</div>
+    <div class="risk ${cls}">暑くなりすぎる（室温30℃超）リスク：<b>${label}</b><br>` +
+    (n ? `${mlist}は、冷房を使わないと昼間の部屋が30℃をこえそうです。` : `5月・11月とも、冷房を使わなくても昼間の部屋は30℃以下におさまりそうです。`) +
+    (() => { const warm = cur.midMonths.filter(i => cur.months[i].tiMax >= 28 && cur.months[i].tiMax <= CONST.overheatT); return warm.length ? `<span style="display:block;font-size:13px">${warm.map(i => `${i + 1}月`).join('・')}は28℃をこえて「暑い」と感じそうです（窓を開けて風を通せば下がる程度）。</span>` : ''; })() +
+    `<span class="note" style="display:block">比べる家：30℃超は${bn}か月。${tip}</span></div>`;
+}
+
+(function init() {
+  buildUI();
+  try { const m = location.hash.match(/#s=(.+)/); if (m) lite = Object.assign(defaultLite(), JSON.parse(decodeURIComponent(m[1]))); } catch (e) { lite = defaultLite(); }
+  if (!GRADES.some(g => g.id === lite.grade)) lite.grade = 'g6';
+  if (!GRADES.some(g => g.id === lite.baseline)) lite.baseline = 'g4';
+  update();
+})();
+</script>
+</body>
+</html>
